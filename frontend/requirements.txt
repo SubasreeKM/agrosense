@@ -1,0 +1,8 @@
+flask
+flask-cors
+python-dotenv
+requests
+Pillow
+onnxruntime
+supabase
+google-generativeai
