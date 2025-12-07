@@ -8,11 +8,9 @@ import {
   CheckCircle2, 
   Loader2, 
   Leaf,
-  Thermometer,
-  Droplets,
-  Wind,
   Info
 } from 'lucide-react';
+
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
@@ -29,6 +27,7 @@ interface DetectionResult {
   weatherAlert: string | null;
 }
 
+/* Static fallback treatment database */
 const diseaseDatabase: Record<string, DetectionResult> = {
   default: {
     disease: 'Late Blight (Phytophthora infestans)',
@@ -46,7 +45,8 @@ const diseaseDatabase: Record<string, DetectionResult> = {
       'Practice crop rotation',
       'Maintain proper plant spacing',
     ],
-    weatherAlert: 'High humidity expected in next 3 days - increase monitoring frequency',
+    weatherAlert:
+      'High humidity expected in next 3 days - increase monitoring frequency',
   },
 };
 
@@ -55,27 +55,63 @@ export default function DiseaseDetector() {
   const [analyzing, setAnalyzing] = useState(false);
   const [result, setResult] = useState<DetectionResult | null>(null);
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
+  const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = () => {
-        setPreview(reader.result as string);
-        setResult(null);
-        setAnalyzing(true);
-        // Simulate AI analysis
-        setTimeout(() => {
-          setAnalyzing(false);
-          setResult(diseaseDatabase.default);
-        }, 3000);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    // Image preview
+    const reader = new FileReader();
+    reader.onload = () => setPreview(reader.result as string);
+    reader.readAsDataURL(file);
+
+    setResult(null);
+    setAnalyzing(true);
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const response = await fetch("http://localhost:5000/api/disease-detect", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+      console.log("Backend Response:", data);
+
+      if (data.success) {
+        const disease = data.data.disease;
+        const confidence = data.data.confidence; // backend returns 0.95
+
+        setResult({
+          disease,
+          confidence: parseFloat((confidence * 100).toFixed(2)), // convert to percentage
+          severity:
+            confidence > 0.85
+              ? "high"
+              : confidence > 0.55
+              ? "medium"
+              : "low",
+
+          /* You can later replace these with backend recommendations */
+          treatment: diseaseDatabase.default.treatment,
+          prevention: diseaseDatabase.default.prevention,
+          weatherAlert: diseaseDatabase.default.weatherAlert,
+        });
+      } else {
+        alert("Prediction failed: " + data.message);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error connecting to backend");
     }
+
+    setAnalyzing(false);
   }, []);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: { 'image/*': ['.jpeg', '.jpg', '.png', '.webp'] },
+    accept: { "image/*": [".jpg", ".jpeg", ".png", ".webp"] },
     maxFiles: 1,
   });
 
@@ -97,10 +133,11 @@ export default function DiseaseDetector() {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      
+
       <main className="pt-24 pb-16">
         <div className="container mx-auto px-4">
-          {/* Header */}
+          
+          {/* Header Section */}
           <motion.div
             className="text-center mb-12"
             initial={{ opacity: 0, y: 20 }}
@@ -110,59 +147,62 @@ export default function DiseaseDetector() {
               <ScanLine className="w-4 h-4" />
               AI Disease Detection
             </span>
-            <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
+
+            <h1 className="text-4xl md:text-5xl font-bold mb-4">
               Crop Disease Detector
             </h1>
+
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Upload a photo of your crop leaf and our AI model will identify 
-              diseases with 98% accuracy and provide treatment recommendations.
+              Upload a photo of your crop leaf — AI will identify the disease  
+              and provide treatment recommendations.
             </p>
           </motion.div>
 
           <div className="max-w-6xl mx-auto">
             <div className="grid lg:grid-cols-2 gap-8">
-              {/* Upload Section */}
+
+              {/* UPLOAD SECTION */}
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.1 }}
               >
-                <Card variant="elevated" className="h-full">
+                <Card className="h-full">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Upload className="w-5 h-5 text-accent" />
                       Upload Leaf Image
                     </CardTitle>
                   </CardHeader>
+
                   <CardContent>
                     <div
                       {...getRootProps()}
                       className={`
-                        relative border-2 border-dashed rounded-xl p-8 text-center cursor-pointer
-                        transition-all duration-300 min-h-[350px] flex items-center justify-center
-                        ${isDragActive 
-                          ? 'border-accent bg-accent/5' 
-                          : 'border-border hover:border-accent/50 hover:bg-muted/50'
+                        border-2 border-dashed rounded-xl p-8 text-center cursor-pointer
+                        min-h-[350px] flex items-center justify-center transition-all
+                        ${
+                          isDragActive
+                            ? "border-accent bg-accent/5"
+                            : "border-border hover:border-accent/50 hover:bg-muted/50"
                         }
                       `}
                     >
                       <input {...getInputProps()} />
+
                       {preview ? (
                         <div className="relative w-full">
                           <img
                             src={preview}
-                            alt="Uploaded leaf"
+                            alt="Preview"
                             className="w-full h-80 object-contain rounded-lg"
                           />
+
                           {analyzing && (
-                            <div className="absolute inset-0 bg-background/80 backdrop-blur-sm rounded-lg flex items-center justify-center">
+                            <div className="absolute inset-0 bg-background/80 backdrop-blur-md rounded-lg flex items-center justify-center">
                               <div className="text-center">
-                                <div className="w-16 h-16 rounded-full gradient-accent flex items-center justify-center mx-auto mb-4">
-                                  <Loader2 className="w-8 h-8 text-accent-foreground animate-spin" />
-                                </div>
-                                <p className="text-lg font-medium text-foreground">Analyzing Image...</p>
+                                <Loader2 className="w-10 h-10 text-accent animate-spin mx-auto mb-2" />
                                 <p className="text-sm text-muted-foreground">
-                                  Running AI disease detection model
+                                  Running AI analysis...
                                 </p>
                               </div>
                             </div>
@@ -173,62 +213,58 @@ export default function DiseaseDetector() {
                           <div className="w-20 h-20 rounded-full bg-accent/10 flex items-center justify-center mx-auto mb-4">
                             <Upload className="w-10 h-10 text-accent" />
                           </div>
-                          <p className="text-lg font-medium text-foreground mb-2">
-                            {isDragActive ? 'Drop your image here' : 'Drag & drop a leaf image'}
+                          <p className="text-lg font-medium mb-2">
+                            {isDragActive ? "Drop image here" : "Drag & drop leaf image"}
                           </p>
                           <p className="text-sm text-muted-foreground mb-4">
-                            or click to browse (JPG, PNG, WEBP)
+                            or click to browse files
                           </p>
-                          <Button variant="outline">
-                            Choose File
-                          </Button>
+                          <Button variant="outline">Choose File</Button>
                         </div>
                       )}
                     </div>
 
                     {preview && !analyzing && (
-                      <div className="flex gap-3 mt-4">
-                        <Button variant="outline" className="flex-1" onClick={resetScan}>
-                          Scan New Image
-                        </Button>
-                      </div>
+                      <Button variant="outline" className="w-full mt-4" onClick={resetScan}>
+                        Scan New Image
+                      </Button>
                     )}
                   </CardContent>
                 </Card>
               </motion.div>
 
-              {/* Results Section */}
+              {/* RESULTS SECTION */}
               <motion.div
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.2 }}
               >
-                <Card variant="elevated" className="h-full">
+                <Card className="h-full">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Leaf className="w-5 h-5 text-accent" />
                       Detection Results
                     </CardTitle>
                   </CardHeader>
+
                   <CardContent>
                     {result ? (
                       <div className="space-y-6">
-                        {/* Disease Info */}
+                        
+                        {/* Disease Title */}
                         <div className="flex items-start gap-4">
-                          <div className="w-14 h-14 rounded-xl bg-destructive/10 flex items-center justify-center flex-shrink-0">
+                          <div className="w-14 h-14 rounded-xl bg-destructive/10 flex items-center justify-center">
                             <AlertTriangle className="w-7 h-7 text-destructive" />
                           </div>
-                          <div className="flex-1">
-                            <h3 className="text-xl font-bold text-foreground mb-1">
-                              {result.disease}
-                            </h3>
+
+                          <div>
+                            <h3 className="text-xl font-bold">{result.disease}</h3>
                             <Badge className={getSeverityColor(result.severity)}>
-                              {result.severity.charAt(0).toUpperCase() + result.severity.slice(1)} Severity
+                              {result.severity.toUpperCase()}
                             </Badge>
                           </div>
                         </div>
 
-                        {/* Confidence */}
+                        {/* Confidence Bar */}
                         <div>
                           <div className="flex items-center justify-between mb-2">
                             <span className="text-sm text-muted-foreground">Detection Confidence</span>
@@ -240,25 +276,25 @@ export default function DiseaseDetector() {
                         {/* Weather Alert */}
                         {result.weatherAlert && (
                           <div className="p-4 rounded-xl bg-sun/10 border border-sun/20">
-                            <div className="flex items-center gap-2 mb-2">
+                            <div className="flex items-center gap-2 mb-1">
                               <AlertTriangle className="w-5 h-5 text-sun" />
-                              <span className="font-medium text-foreground">Weather Alert</span>
+                              <span className="font-medium">Weather Alert</span>
                             </div>
-                            <p className="text-sm text-muted-foreground">{result.weatherAlert}</p>
+                            <p className="text-sm">{result.weatherAlert}</p>
                           </div>
                         )}
 
                         {/* Treatment */}
                         <div className="p-4 rounded-xl bg-accent/5 border border-accent/20">
-                          <div className="flex items-center gap-2 mb-3">
+                          <div className="flex items-center gap-2 mb-2">
                             <CheckCircle2 className="w-5 h-5 text-accent" />
-                            <span className="font-medium text-foreground">Recommended Treatment</span>
+                            <span className="font-medium">Recommended Treatment</span>
                           </div>
                           <ul className="space-y-2">
-                            {result.treatment.map((item, i) => (
-                              <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
-                                <span className="w-1.5 h-1.5 rounded-full bg-accent mt-2 flex-shrink-0" />
-                                {item}
+                            {result.treatment.map((t, i) => (
+                              <li key={i} className="text-sm text-muted-foreground flex gap-2">
+                                <span className="w-1.5 h-1.5 bg-accent rounded-full mt-2" />
+                                {t}
                               </li>
                             ))}
                           </ul>
@@ -266,34 +302,25 @@ export default function DiseaseDetector() {
 
                         {/* Prevention */}
                         <div className="p-4 rounded-xl bg-muted/50">
-                          <div className="flex items-center gap-2 mb-3">
+                          <div className="flex items-center gap-2 mb-2">
                             <Info className="w-5 h-5 text-primary" />
-                            <span className="font-medium text-foreground">Prevention Tips</span>
+                            <span className="font-medium">Prevention Tips</span>
                           </div>
                           <ul className="space-y-2">
-                            {result.prevention.map((item, i) => (
-                              <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
-                                <span className="w-1.5 h-1.5 rounded-full bg-primary mt-2 flex-shrink-0" />
-                                {item}
+                            {result.prevention.map((p, i) => (
+                              <li key={i} className="text-sm text-muted-foreground flex gap-2">
+                                <span className="w-1.5 h-1.5 bg-primary rounded-full mt-2" />
+                                {p}
                               </li>
                             ))}
                           </ul>
                         </div>
+
                       </div>
                     ) : (
-                      <div className="h-full flex items-center justify-center py-16">
-                        <div className="text-center">
-                          <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
-                            <ScanLine className="w-10 h-10 text-muted-foreground" />
-                          </div>
-                          <h4 className="text-lg font-semibold text-foreground mb-2">
-                            Upload an Image to Analyze
-                          </h4>
-                          <p className="text-sm text-muted-foreground max-w-xs mx-auto">
-                            Our AI can detect over 38 common crop diseases including 
-                            blight, rust, mosaic virus, and more.
-                          </p>
-                        </div>
+                      <div className="py-20 text-center">
+                        <ScanLine className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                        <p className="text-lg font-medium">Upload an image to analyze</p>
                       </div>
                     )}
                   </CardContent>
