@@ -3,7 +3,6 @@ import { Footer } from '@/components/layout/Footer';
 import { HeroSection } from '@/components/home/HeroSection';
 import { AboutSection } from '@/components/home/AboutSection';
 import { FeaturesSection } from '@/components/home/FeaturesSection';
-import { DiseaseDetectorPreview } from '@/components/home/DiseaseDetectorPreview';
 import { WeatherPreview } from '@/components/home/WeatherPreview';
 import { ChatbotPreview } from '@/components/home/ChatbotPreview';
 import { TodoPreview } from '@/components/home/TodoPreview';
@@ -19,7 +18,6 @@ const Index = () => {
         <HeroSection />
         <AboutSection />
         <FeaturesSection />
-        <DiseaseDetectorPreview />
         <WeatherPreview />
         <ChatbotPreview />
         <TodoPreview />
