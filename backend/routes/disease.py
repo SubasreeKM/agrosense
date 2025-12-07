@@ -1,13 +1,19 @@
 from flask import Blueprint, request
 from models.preprocess import preprocess_image
-from models.onnx_loader import predict_onnx
+from models.tflite_loader import predict_tflite
 from utils.response import success, error
 import os
 
 disease_bp = Blueprint("disease_bp", __name__)
 
+# ✔ FINAL 6 CLASS LABELS (Your required output classes)
 CLASS_NAMES = [
-    "Healthy", "Black Rot", "Leaf Blight", "Rust", "Mosaic", "Late Blight"
+    "Healthy",
+    "Black Rot",
+    "Leaf Blight",
+    "Rust",
+    "Mosaic",
+    "Late Blight"
 ]
 
 @disease_bp.route("/disease-detect", methods=["POST"])
@@ -16,15 +22,31 @@ def detect():
         return error("Image file missing")
 
     img = request.files["file"]
-    path = "temp.jpg"
-    img.save(path)
+    temp_path = "temp.jpg"
+    img.save(temp_path)
 
-    processed = preprocess_image(path)
-    class_id, confidence = predict_onnx(processed)
+    try:
+        # Preprocess into (1, 224, 224, 3)
+        processed = preprocess_image(temp_path)
 
-    os.remove(path)
+        # Run TFLite model
+        class_id, confidence, raw_output = predict_tflite(processed)
 
-    return success("Prediction Successful", {
-        "disease": CLASS_NAMES[class_id],
-        "confidence": confidence
-    })
+        # Safety check: Ensure class_id is in valid range
+        if class_id < 0 or class_id >= len(CLASS_NAMES):
+            return error(f"Model returned invalid class index: {class_id}")
+
+        result = {
+            "disease": CLASS_NAMES[class_id],
+            "confidence": float(confidence),
+            "raw_output": raw_output  # useful for debugging & tuning
+        }
+
+        return success("Prediction Successful", result)
+
+    except Exception as e:
+        return error(f"Server Error: {str(e)}")
+
+    finally:
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
