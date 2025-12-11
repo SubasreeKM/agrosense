@@ -87,23 +87,22 @@ export default function Auth() {
   };
 
   const handleGoogleSignIn = async () => {
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/dashboard`,
-        }
-      });
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: `${window.location.origin}/dashboard`,
+    },
+  });
 
-      if (error) throw error;
-    } catch (error: any) {
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to sign in with Google',
-        variant: 'destructive',
-      });
-    }
-  };
+  if (error) {
+    toast({
+      title: "Google Login Failed",
+      description: error.message,
+      variant: "destructive",
+    });
+  }
+};
+
 
   return (
     <div className="min-h-screen flex">
@@ -221,9 +220,8 @@ export default function Auth() {
               </div>
 
               <Button 
-                variant="outline" 
-                className="w-full" 
-                disabled={loading}
+                variant="outline"
+                className="w-full"
                 onClick={handleGoogleSignIn}
               >
                 <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
