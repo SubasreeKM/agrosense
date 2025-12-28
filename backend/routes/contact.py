@@ -1,49 +1,63 @@
-from flask import Blueprint, request
-from utils.response import success, error
+from flask import Blueprint, request, jsonify
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import os
 
-contact_bp = Blueprint("contact_bp", __name__)
-
-EMAIL_USER = os.getenv("CONTACT_EMAIL")
-EMAIL_PASS = os.getenv("CONTACT_EMAIL_PASSWORD")
+contact_bp = Blueprint("contact", __name__)
 
 @contact_bp.route("/contact", methods=["POST"])
-def contact():
+def send_contact_email():
     data = request.json
-    
+
     name = data.get("name")
     email = data.get("email")
     subject = data.get("subject")
     message = data.get("message")
 
-    if not name or not email or not subject or not message:
-        return error("All fields are required")
+    if not all([name, email, subject, message]):
+        return jsonify({"error": "Missing fields"}), 400
+    
+    
+
+
+
+    sender_email = os.getenv("CONTACT_EMAIL")
+    sender_password = os.getenv("CONTACT_EMAIL_PASSWORD")
+
+
+    
+    print("EMAIL:", sender_email)
+    print("PASSWORD LOADED:", bool(sender_password))
+
+    receiver_email = "subhamurali2717@gmail.com"
+    
+
+    msg = MIMEMultipart()
+    msg["From"] = sender_email
+    msg["To"] = receiver_email
+    msg["Subject"] = f"📩 AgroSense Contact: {subject}"
+
+    body = f"""
+    Name: {name}
+    Email: {email}
+
+    Message:
+    {message}
+    """
+
+    msg.attach(MIMEText(body, "plain"))
 
     try:
-        msg = MIMEMultipart()
-        msg["From"] = EMAIL_USER
-        msg["To"] = EMAIL_USER
-        msg["Subject"] = f"New Contact Message: {subject}"
+        with smtplib.SMTP("smtp.gmail.com", 587) as server:
+            server.starttls()
+            server.login(sender_email, sender_password)
+            server.send_message(msg)
 
-        body = f"""
-        Message from: {name}
-        Email: {email}
-
-        {message}
-        """
-
-        msg.attach(MIMEText(body, "plain"))
-
-        server = smtplib.SMTP("smtp.gmail.com", 587)
-        server.starttls()
-        server.login(EMAIL_USER, EMAIL_PASS)
-        server.sendmail(EMAIL_USER, EMAIL_USER, msg.as_string())
-        server.quit()
-
-        return success("Message sent successfully!")
-
+        return jsonify({"success": True})
     except Exception as e:
-        return error(str(e))
+        print("❌ EMAIL ERROR:", str(e))
+        return jsonify({
+            "error": "Failed to send email",
+            "details": str(e)
+        }), 500
