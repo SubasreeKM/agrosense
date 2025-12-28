@@ -12,7 +12,7 @@ const navLinks = [
   { href: '/chatbot', label: 'AI Assistant' },
   { href: '/blogs', label: 'Blogs' },
   { href: '/todo', label: 'Todo List' },
-  { href: '/payment', label: 'Payment' },
+  { href: '/maps', label: 'Maps' },
 ];
 
 export function HomeNavbar() {
