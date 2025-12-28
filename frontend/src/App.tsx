@@ -13,7 +13,7 @@ import Weather from "./pages/Weather";
 import Chatbot from "./pages/Chatbot";
 import Blogs from "./pages/Blogs";
 import Todo from "./pages/Todo";
-import Payment from "./pages/Payment";
+import Maps from "@/pages/Maps";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,7 +34,7 @@ const App = () => (
             <Route path="/chatbot" element={<ProtectedRoute><Chatbot /></ProtectedRoute>} />
             <Route path="/blogs" element={<ProtectedRoute><Blogs /></ProtectedRoute>} />
             <Route path="/todo" element={<ProtectedRoute><Todo /></ProtectedRoute>} />
-            <Route path="/payment" element={<ProtectedRoute><Payment /></ProtectedRoute>} />
+            <Route path="/maps" element={<Maps />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
