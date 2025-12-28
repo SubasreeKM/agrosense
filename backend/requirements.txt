@@ -6,3 +6,12 @@ Pillow
 onnxruntime
 supabase
 google-generativeai
+
+
+torch
+transformers
+
+numpy
+
+
+
