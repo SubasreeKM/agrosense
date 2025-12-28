@@ -6,17 +6,34 @@ todo_bp = Blueprint("todo_bp", __name__)
 
 @todo_bp.route("/todo", methods=["GET"])
 def get_todos():
-    data = supabase.table("todos").select("*").execute().data
-    return success("Todos Fetched", data)
+    res = supabase.table("todos").select("*").order("created_at", desc=True).execute()
+    return success("Todos fetched", res.data)
 
 @todo_bp.route("/todo", methods=["POST"])
 def add_todo():
     task = request.json.get("task")
-    supabase.table("todos").insert({"task": task}).execute()
-    return success("Task Added")
 
-@todo_bp.route("/todo", methods=["DELETE"])
-def delete_todo():
-    task_id = request.args.get("id")
-    supabase.table("todos").delete().eq("id", task_id).execute()
-    return success("Task Deleted")
+    if not task:
+        return error("Task is required")
+
+    supabase.table("todos").insert({
+        "task": task,
+        "completed": False
+    }).execute()
+
+    return success("Task added")
+
+@todo_bp.route("/todo/<id>", methods=["PUT"])
+def update_todo(id):
+    completed = request.json.get("completed")
+
+    supabase.table("todos").update({
+        "completed": completed
+    }).eq("id", id).execute()
+
+    return success("Task updated")
+
+@todo_bp.route("/todo/<id>", methods=["DELETE"])
+def delete_todo(id):
+    supabase.table("todos").delete().eq("id", id).execute()
+    return success("Task deleted")
