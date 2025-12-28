@@ -74,7 +74,8 @@ export function AboutSection() {
           >
             <div className="relative rounded-2xl overflow-hidden shadow-2xl">
               <img
-                src="https://images.unsplash.com/photo-1500937386664-56d1dfef3f32?w=600&h=700&fit=crop"
+                src="https://images.unsplash.com/photo-1464226184884-fa280b87c399?w=600&h=700&fit=crop
+"
                 alt="Modern farming with technology"
                 className="w-full h-[500px] object-cover"
               />
