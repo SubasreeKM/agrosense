@@ -1,25 +1,37 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Leaf, Mail, Phone, MapPin, Facebook, Twitter, Instagram, Linkedin, Youtube, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import {
+  Leaf,
+  Mail,
+  Phone,
+  MapPin,
+  Facebook,
+  Twitter,
+  Instagram,
+  Linkedin,
+  Youtube,
+  Loader2,
+} from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
 
 export function Footer() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    subject: '',
-    message: '',
+    name: "",
+    email: "",
+    subject: "",
+    message: "",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.name || !formData.email || !formData.subject || !formData.message) {
       toast({
         title: "Missing Information",
@@ -30,24 +42,34 @@ export function Footer() {
     }
 
     setLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('send-contact-email', {
-        body: formData,
-      });
 
-      if (error) throw error;
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL}/contact`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData),
+        }
+      );
+
+      if (!res.ok) throw new Error("Email failed");
 
       toast({
         title: "Message Sent!",
-        description: "Thank you for contacting us. We'll get back to you soon.",
+        description: "Your message has been sent successfully.",
       });
 
-      setFormData({ name: '', email: '', subject: '', message: '' });
-    } catch (error: any) {
-      console.error('Error sending message:', error);
+      setFormData({
+        name: "",
+        email: "",
+        subject: "",
+        message: "",
+      });
+    } catch (error) {
       toast({
         title: "Failed to Send",
-        description: error.message || "Please try again later.",
+        description: "Please try again later.",
         variant: "destructive",
       });
     } finally {
@@ -60,105 +82,93 @@ export function Footer() {
       {/* Contact Section */}
       <div className="container mx-auto px-4 py-16">
         <div className="grid lg:grid-cols-2 gap-12">
+          
           {/* Contact Form */}
           <div>
             <h3 className="text-2xl font-bold mb-6">Get in Touch</h3>
+
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid sm:grid-cols-2 gap-4">
                 <Input
                   placeholder="Your Name"
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="bg-sidebar-accent border-sidebar-border text-sidebar-foreground placeholder:text-sidebar-foreground/50"
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
+                  className="bg-white text-black placeholder:text-gray-500"
                 />
+
                 <Input
                   type="email"
                   placeholder="Your Email"
                   value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="bg-sidebar-accent border-sidebar-border text-sidebar-foreground placeholder:text-sidebar-foreground/50"
+                  onChange={(e) =>
+                    setFormData({ ...formData, email: e.target.value })
+                  }
+                  className="bg-white text-black placeholder:text-gray-500"
                 />
               </div>
+
               <Input
                 placeholder="Subject"
                 value={formData.subject}
-                onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                className="bg-sidebar-accent border-sidebar-border text-sidebar-foreground placeholder:text-sidebar-foreground/50"
+                onChange={(e) =>
+                  setFormData({ ...formData, subject: e.target.value })
+                }
+                className="bg-white text-black placeholder:text-gray-500"
               />
+
               <Textarea
                 placeholder="Your Message"
                 rows={4}
                 value={formData.message}
-                onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                className="bg-sidebar-accent border-sidebar-border text-sidebar-foreground placeholder:text-sidebar-foreground/50 resize-none"
+                onChange={(e) =>
+                  setFormData({ ...formData, message: e.target.value })
+                }
+                className="bg-white text-black placeholder:text-gray-500 resize-none"
               />
-              <Button variant="accent" size="lg" type="submit" disabled={loading}>
+
+              <Button type="submit" disabled={loading} className="w-full">
                 {loading ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                     Sending...
                   </>
                 ) : (
-                  'Send Message'
+                  "Send Message"
                 )}
               </Button>
             </form>
           </div>
 
-          {/* Contact Info & Links */}
+          {/* Info */}
           <div className="grid sm:grid-cols-2 gap-8">
             <div>
               <h4 className="text-lg font-semibold mb-4">Quick Links</h4>
-              <ul className="space-y-3">
-                <li>
-                  <Link to="/" className="text-sidebar-foreground/70 hover:text-sidebar-primary transition-colors">
-                    Home
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/dashboard" className="text-sidebar-foreground/70 hover:text-sidebar-primary transition-colors">
-                    Dashboard
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/disease-detector" className="text-sidebar-foreground/70 hover:text-sidebar-primary transition-colors">
-                    Disease Detector
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/weather" className="text-sidebar-foreground/70 hover:text-sidebar-primary transition-colors">
-                    Weather Forecast
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/blogs" className="text-sidebar-foreground/70 hover:text-sidebar-primary transition-colors">
-                    Blogs
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/payment" className="text-sidebar-foreground/70 hover:text-sidebar-primary transition-colors">
-                    Payment QR
-                  </Link>
-                </li>
+              <ul className="space-y-2">
+                <li><Link to="/">Home</Link></li>
+                <li><Link to="/dashboard">Dashboard</Link></li>
+                <li><Link to="/disease-detector">Disease Detector</Link></li>
+                <li><Link to="/weather">Weather</Link></li>
+                <li><Link to="/blogs">Blogs</Link></li>
+                <li><Link to="/maps">Maps</Link></li>
               </ul>
             </div>
 
             <div>
-              <h4 className="text-lg font-semibold mb-4">Contact Us</h4>
-              <ul className="space-y-4">
-                <li className="flex items-start gap-3">
-                  <MapPin className="w-5 h-5 text-sidebar-primary mt-0.5 flex-shrink-0" />
-                  <span className="text-sidebar-foreground/70">
-                    123 Agriculture Road, Farmville, IN 12345
-                  </span>
+              <h4 className="text-lg font-semibold mb-4">Contact</h4>
+              <ul className="space-y-3">
+                <li className="flex gap-2 items-center">
+                  <MapPin className="w-5 h-5" />
+                  <span>India</span>
                 </li>
-                <li className="flex items-center gap-3">
-                  <Phone className="w-5 h-5 text-sidebar-primary flex-shrink-0" />
-                  <span className="text-sidebar-foreground/70">+91 98765 43210</span>
+                <li className="flex gap-2 items-center">
+                  <Phone className="w-5 h-5" />
+                  <span>+91 98765 43210</span>
                 </li>
-                <li className="flex items-center gap-3">
-                  <Mail className="w-5 h-5 text-sidebar-primary flex-shrink-0" />
-                  <span className="text-sidebar-foreground/70">support@agrosense.ai</span>
+                <li className="flex gap-2 items-center">
+                  <Mail className="w-5 h-5" />
+                  <span>support@agrosense.ai</span>
                 </li>
               </ul>
             </div>
@@ -166,51 +176,23 @@ export function Footer() {
         </div>
       </div>
 
-      {/* Bottom Bar */}
-      <div className="border-t border-sidebar-border">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            {/* Logo & Copyright */}
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg gradient-accent flex items-center justify-center">
-                  <Leaf className="w-4 h-4 text-accent-foreground" />
-                </div>
-                <span className="font-bold">AgroSense AI</span>
-              </div>
-              <span className="text-sidebar-foreground/50 text-sm">
-                © 2025 AgroSense AI. All Rights Reserved.
-              </span>
-            </div>
+      {/* Bottom */}
+      <div className="border-t py-6">
+        <div className="container mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <Leaf className="w-5 h-5" />
+            <span className="font-bold">AgroSense AI</span>
+            <span className="text-sm opacity-60">
+              © 2025 All rights reserved
+            </span>
+          </div>
 
-            {/* Social Links */}
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" className="rounded-full hover:bg-sidebar-accent">
-                <Facebook className="w-5 h-5" />
-              </Button>
-              <Button variant="ghost" size="icon" className="rounded-full hover:bg-sidebar-accent">
-                <Twitter className="w-5 h-5" />
-              </Button>
-              <Button variant="ghost" size="icon" className="rounded-full hover:bg-sidebar-accent">
-                <Instagram className="w-5 h-5" />
-              </Button>
-              <Button variant="ghost" size="icon" className="rounded-full hover:bg-sidebar-accent">
-                <Linkedin className="w-5 h-5" />
-              </Button>
-              <Button variant="ghost" size="icon" className="rounded-full hover:bg-sidebar-accent">
-                <Youtube className="w-5 h-5" />
-              </Button>
-            </div>
-
-            {/* Legal Links */}
-            <div className="flex items-center gap-4 text-sm">
-              <Link to="/privacy" className="text-sidebar-foreground/50 hover:text-sidebar-primary transition-colors">
-                Privacy Policy
-              </Link>
-              <Link to="/terms" className="text-sidebar-foreground/50 hover:text-sidebar-primary transition-colors">
-                Terms of Service
-              </Link>
-            </div>
+          <div className="flex gap-3">
+            <Facebook />
+            <Twitter />
+            <Instagram />
+            <Linkedin />
+            <Youtube />
           </div>
         </div>
       </div>
