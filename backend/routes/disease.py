@@ -1,52 +1,51 @@
 from flask import Blueprint, request
-from models.preprocess import preprocess_image
-from models.tflite_loader import predict_tflite
-from utils.response import success, error
 import os
+
+from models.disease_detector import (
+    predict_disease,
+    is_valid_leaf_prediction
+)
+from utils.response import success, error
 
 disease_bp = Blueprint("disease_bp", __name__)
 
-# ✔ FINAL 6 CLASS LABELS (Your required output classes)
-CLASS_NAMES = [
-    "Healthy",
-    "Black Rot",
-    "Leaf Blight",
-    "Rust",
-    "Mosaic",
-    "Late Blight"
-]
-
 @disease_bp.route("/disease-detect", methods=["POST"])
-def detect():
+def detect_disease():
+    # 1️⃣ Validate request
     if "file" not in request.files:
         return error("Image file missing")
 
-    img = request.files["file"]
-    temp_path = "temp.jpg"
-    img.save(temp_path)
+    file = request.files["file"]
+
+    if file.filename == "":
+        return error("No image selected")
+
+    # 2️⃣ Save uploaded image temporarily
+    temp_path = "temp_leaf_image.jpg"
+    file.save(temp_path)
 
     try:
-        # Preprocess into (1, 224, 224, 3)
-        processed = preprocess_image(temp_path)
+        # 3️⃣ Run pretrained model prediction
+        disease, confidence = predict_disease(temp_path)
 
-        # Run TFLite model
-        class_id, confidence, raw_output = predict_tflite(processed)
+        # 4️⃣ Non-leaf / low-confidence rejection
+        if not is_valid_leaf_prediction(disease, confidence):
+            return success("Not a leaf image", {
+                "is_leaf": False,
+                "message": "Uploaded image is not a crop leaf or prediction is uncertain"
+            })
 
-        # Safety check: Ensure class_id is in valid range
-        if class_id < 0 or class_id >= len(CLASS_NAMES):
-            return error(f"Model returned invalid class index: {class_id}")
-
-        result = {
-            "disease": CLASS_NAMES[class_id],
-            "confidence": float(confidence),
-            "raw_output": raw_output  # useful for debugging & tuning
-        }
-
-        return success("Prediction Successful", result)
+        # 5️⃣ Valid disease prediction
+        return success("Prediction Successful", {
+            "is_leaf": True,
+            "disease": disease,
+            "confidence": confidence
+        })
 
     except Exception as e:
-        return error(f"Server Error: {str(e)}")
+        return error(f"Server error: {str(e)}")
 
     finally:
+        # 6️⃣ Cleanup temp file
         if os.path.exists(temp_path):
             os.remove(temp_path)
