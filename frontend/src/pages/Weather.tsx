@@ -1,238 +1,454 @@
-import { motion } from 'framer-motion';
-import { 
-  CloudSun, 
-  Droplets, 
-  Wind, 
-  Thermometer, 
-  Sun, 
-  CloudRain,
-  Cloud,
+import { useEffect, useState } from "react";
+import {
+  CloudSun,
+  Droplets,
+  Wind,
   Gauge,
-  Sunrise,
-  Sunset,
-  AlertTriangle,
-  CheckCircle2,
-  MapPin
-} from 'lucide-react';
-import { AppNavbar } from '@/components/layout/AppNavbar';
-import { AppFooter } from '@/components/layout/AppFooter';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+  MapPin,
+} from "lucide-react";
+import { AppNavbar } from "@/components/layout/AppNavbar";
+import { AppFooter } from "@/components/layout/AppFooter";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-const weekForecast = [
-  { day: 'Mon', date: '2', icon: Sun, high: 32, low: 22, condition: 'Sunny', rain: 0 },
-  { day: 'Tue', date: '3', icon: CloudSun, high: 30, low: 21, condition: 'Partly Cloudy', rain: 10 },
-  { day: 'Wed', date: '4', icon: CloudSun, high: 29, low: 20, condition: 'Partly Cloudy', rain: 15 },
-  { day: 'Thu', date: '5', icon: CloudRain, high: 26, low: 19, condition: 'Rainy', rain: 80 },
-  { day: 'Fri', date: '6', icon: CloudRain, high: 24, low: 18, condition: 'Heavy Rain', rain: 90 },
-  { day: 'Sat', date: '7', icon: Cloud, high: 27, low: 19, condition: 'Cloudy', rain: 40 },
-  { day: 'Sun', date: '8', icon: Sun, high: 31, low: 21, condition: 'Sunny', rain: 5 },
-];
+const OPENWEATHER_KEY = "8168d1810e1e58c05eee5479cd659784";
 
-const hourlyForecast = [
-  { time: '6 AM', temp: 22, icon: Sunrise },
-  { time: '9 AM', temp: 26, icon: Sun },
-  { time: '12 PM', temp: 31, icon: Sun },
-  { time: '3 PM', temp: 32, icon: Sun },
-  { time: '6 PM', temp: 28, icon: Sunset },
-  { time: '9 PM', temp: 24, icon: Cloud },
-];
+interface HourData {
+  time: string;
+  temp: number;
+  icon: string;
+}
 
-const farmingInsights = [
-  { 
-    title: 'Irrigation', 
-    recommendation: 'Skip watering today - sufficient soil moisture',
-    status: 'good',
-    icon: Droplets,
-  },
-  { 
-    title: 'Fertilizer Application', 
-    recommendation: 'Ideal conditions - low wind, no rain expected',
-    status: 'good',
-    icon: CheckCircle2,
-  },
-  { 
-    title: 'Pest Risk', 
-    recommendation: 'Medium risk - high humidity may increase fungal activity',
-    status: 'warning',
-    icon: AlertTriangle,
-  },
-  { 
-    title: 'Spraying', 
-    recommendation: 'Good conditions until Thursday - plan accordingly',
-    status: 'good',
-    icon: Wind,
-  },
-];
+interface DayData {
+  date: string;
+  condition: string;
+  max: number;
+  min: number;
+}
 
 export default function Weather() {
-  return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <AppNavbar />
-      
-      <main className="flex-1 pt-24 pb-16">
-        <div className="container mx-auto px-4">
-          <motion.div
-            className="text-center mb-12"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-sun/10 text-sun text-sm font-medium mb-4">
-              <CloudSun className="w-4 h-4" />
-              Weather Forecast
-            </span>
-            <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
-              Agricultural Weather Insights
-            </h1>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto flex items-center justify-center gap-2">
-              <MapPin className="w-5 h-5" />
-              Farmville, Punjab, India
-            </p>
-          </motion.div>
+  const [city, setCity] = useState("Ludhiana");
+  const [current, setCurrent] = useState<any>(null);
+  const [hourly, setHourly] = useState<HourData[]>([]);
+  const [weekly, setWeekly] = useState<DayData[]>([]);
+  const [insights, setInsights] = useState<string[]>([]);
+  
+const [rainChance, setRainChance] = useState<number>(0);
+const [heatRisk, setHeatRisk] = useState<string>("");
+const [spraySafe, setSpraySafe] = useState<boolean>(true);
 
-          <div className="max-w-6xl mx-auto">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="mb-8"
-            >
-              <Card variant="elevated" className="overflow-hidden">
-                <div className="gradient-sun p-8 text-sun-foreground">
-                  <div className="grid md:grid-cols-2 gap-8 items-center">
-                    <div>
-                      <p className="text-sun-foreground/70 mb-2">Today, December 2</p>
-                      <div className="flex items-center gap-4 mb-4">
-                        <span className="text-7xl font-bold">32°C</span>
-                        <Sun className="w-24 h-24 text-sun-foreground/80" />
-                      </div>
-                      <p className="text-2xl font-medium mb-2">Sunny & Clear</p>
-                      <p className="text-sun-foreground/70">
-                        Feels like 35°C - Perfect for outdoor farming activities
-                      </p>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="p-4 rounded-xl bg-sun-foreground/10 backdrop-blur-sm text-center">
-                        <Thermometer className="w-8 h-8 mx-auto mb-2" />
-                        <p className="text-sm opacity-70">High / Low</p>
-                        <p className="text-xl font-semibold">32° / 22°</p>
-                      </div>
-                      <div className="p-4 rounded-xl bg-sun-foreground/10 backdrop-blur-sm text-center">
-                        <Droplets className="w-8 h-8 mx-auto mb-2" />
-                        <p className="text-sm opacity-70">Humidity</p>
-                        <p className="text-xl font-semibold">45%</p>
-                      </div>
-                      <div className="p-4 rounded-xl bg-sun-foreground/10 backdrop-blur-sm text-center">
-                        <Wind className="w-8 h-8 mx-auto mb-2" />
-                        <p className="text-sm opacity-70">Wind Speed</p>
-                        <p className="text-xl font-semibold">12 km/h</p>
-                      </div>
-                      <div className="p-4 rounded-xl bg-sun-foreground/10 backdrop-blur-sm text-center">
-                        <Gauge className="w-8 h-8 mx-auto mb-2" />
-                        <p className="text-sm opacity-70">Pressure</p>
-                        <p className="text-xl font-semibold">1013 hPa</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+const [showLiveCard, setShowLiveCard] = useState<boolean>(false);
 
-                <CardContent className="p-6">
-                  <h4 className="font-semibold text-foreground mb-4">Today's Hourly Forecast</h4>
-                  <div className="flex justify-between overflow-x-auto gap-4 pb-2">
-                    {hourlyForecast.map((hour, i) => (
-                      <div key={i} className="flex-1 min-w-[80px] text-center p-3 rounded-xl hover:bg-muted transition-colors">
-                        <p className="text-sm text-muted-foreground mb-2">{hour.time}</p>
-                        <hour.icon className="w-8 h-8 mx-auto mb-2 text-sun" />
-                        <p className="text-lg font-semibold text-foreground">{hour.temp}°</p>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
+const [liveCoords, setLiveCoords] = useState<{
+  lat: number;
+  lon: number;
+} | null>(null);
 
-            <div className="grid lg:grid-cols-3 gap-6">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="lg:col-span-2"
-              >
-                <Card variant="elevated">
-                  <CardHeader>
-                    <CardTitle>7-Day Forecast</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      {weekForecast.map((day, i) => (
-                        <div
-                          key={i}
-                          className={`flex items-center gap-4 p-4 rounded-xl transition-colors ${
-                            i === 0 ? 'bg-accent/10 border border-accent/20' : 'hover:bg-muted/50'
-                          }`}
-                        >
-                          <div className="w-16 text-center">
-                            <p className="font-semibold text-foreground">{day.day}</p>
-                            <p className="text-sm text-muted-foreground">Dec {day.date}</p>
-                          </div>
-                          <day.icon className={`w-10 h-10 ${
-                            day.condition.includes('Rain') ? 'text-blue-500' : 'text-sun'
-                          }`} />
-                          <div className="flex-1">
-                            <p className="font-medium text-foreground">{day.condition}</p>
-                            <div className="flex items-center gap-2 mt-1">
-                              <Droplets className="w-4 h-4 text-blue-500" />
-                              <span className="text-sm text-muted-foreground">{day.rain}% rain</span>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <p className="font-semibold text-foreground">{day.high}°</p>
-                            <p className="text-sm text-muted-foreground">{day.low}°</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
+const [liveCity, setLiveCity] = useState<string>(""); // for live location only
 
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-              >
-                <Card variant="elevated" className="h-full">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Thermometer className="w-5 h-5 text-accent" />
-                      Farming Insights
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {farmingInsights.map((insight, i) => (
-                      <div
-                        key={i}
-                        className={`p-4 rounded-xl ${
-                          insight.status === 'warning' ? 'bg-sun/10' : 'bg-accent/10'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2 mb-2">
-                          <insight.icon className={`w-5 h-5 ${
-                            insight.status === 'warning' ? 'text-sun' : 'text-accent'
-                          }`} />
-                          <span className="font-medium text-foreground">{insight.title}</span>
-                        </div>
-                        <p className="text-sm text-muted-foreground">{insight.recommendation}</p>
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
-              </motion.div>
-            </div>
-          </div>
-        </div>
-      </main>
+  async function fetchWeather(targetCity: string) {
+    try {
+      // CURRENT WEATHER
+      const currentRes = await fetch(
+        `https://api.openweathermap.org/data/2.5/weather?q=${targetCity}&units=metric&appid=${OPENWEATHER_KEY}`
+      );
+      const currentData = await currentRes.json();
+      if (!currentData.coord) return alert("City not found");
 
-      <AppFooter />
-    </div>
+      // FORECAST
+      const forecastRes = await fetch(
+        `https://api.openweathermap.org/data/2.5/forecast?q=${targetCity}&units=metric&appid=${OPENWEATHER_KEY}`
+      );
+      const forecastData = await forecastRes.json();
+
+      // NASA POWER
+      const lat = currentData.coord.lat;
+      const lon = currentData.coord.lon;
+      const today = new Date();
+      const end = today.toISOString().slice(0, 10).replace(/-/g, "");
+      const start = new Date(today.setDate(today.getDate() - 6))
+        .toISOString()
+        .slice(0, 10)
+        .replace(/-/g, "");
+
+      const nasaRes = await fetch(
+        `https://power.larc.nasa.gov/api/temporal/daily/point?latitude=${lat}&longitude=${lon}&parameters=T2M,RH2M,PRECTOT&start=${start}&end=${end}&community=AG&format=JSON`
+      );
+      const nasaData = await nasaRes.json();
+
+      setCurrent(currentData);
+
+      // HOURLY
+      setHourly(
+        forecastData.list.slice(0, 8).map((h: any) => ({
+          time: new Date(h.dt_txt).getHours() + ":00",
+          temp: Math.round(h.main.temp),
+          icon: h.weather[0].icon,
+        }))
+      );
+      // ✅ FREE 7-DAY FORECAST (Open-Meteo)
+const weeklyRes = await fetch(
+  `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min,weathercode&timezone=auto`
+);
+
+const weeklyData = await weeklyRes.json();
+
+setWeekly(
+  weeklyData.daily.time.slice(0, 7).map((date: string, i: number) => ({
+    date: new Date(date).toDateString(),
+    condition: weatherCodeToText(weeklyData.daily.weathercode[i]),
+    max: Math.round(weeklyData.daily.temperature_2m_max[i]),
+    min: Math.round(weeklyData.daily.temperature_2m_min[i]),
+  }))
+);
+
+
+
+      // INSIGHTS
+      const rain: number =
+  Object.values(
+    nasaData?.properties?.parameter?.PRECTOT || {}
+  ).reduce<number>((a, b) => a + Number(b), 0);
+
+      if (!currentData) return;
+
+setInsights([
+  currentData.main.temp >= 18 && currentData.main.temp <= 32
+    ? "🌾 Optimal temperature for crops"
+    : "⚠️ Temperature stress risk",
+
+  rain > 10
+    ? "💧 Rainfall sufficient – irrigation not needed"
+    : "🚿 Low rainfall – irrigation advised",
+
+  currentData.main.humidity > 60
+    ? "🌱 Good soil moisture"
+    : "🌵 Dry soil – monitor moisture",
+
+  currentData.wind.speed < 10
+    ? "🚜 Safe for spraying"
+    : "❌ Avoid spraying due to wind",
+]);// RAIN PROBABILITY (from forecast)
+const rainCount = forecastData.list.filter(
+  (i: any) => i.weather[0].main.toLowerCase().includes("rain")
+).length;
+setRainChance(Math.round((rainCount / forecastData.list.length) * 100));
+
+// 🌡 ADVANCED HEAT STRESS INDEX (Temp + Humidity)
+const temp = currentData.main.temp;
+const humidity = currentData.main.humidity;
+
+if (temp >= 40 || (temp >= 36 && humidity > 70)) {
+  setHeatRisk("🔥 Severe heat stress – avoid field activity, irrigate immediately");
+} else if (temp >= 34 || (temp >= 30 && humidity > 65)) {
+  setHeatRisk("🌡 Moderate heat stress – irrigation & shade advised");
+} else if (temp >= 28 && humidity > 60) {
+  setHeatRisk("⚠️ Mild heat stress – monitor crops");
+} else {
+  setHeatRisk("✅ No heat stress detected");
+}
+
+
+// 🚜 ADVANCED SPRAY SAFETY CHECK
+const wind = currentData.wind.speed;
+const humidity2 = currentData.main.humidity;
+const rainExpected = rainChance > 30;
+
+if (wind > 15 || rainExpected) {
+  setSpraySafe(false);
+} else if (wind > 10 || humidity2 > 85) {
+  setSpraySafe(false);
+} else {
+  setSpraySafe(true);
+}
+
+
+    } catch (err) {
+      console.error(err);
+      alert("Weather fetch failed");
+    }
+    
+  }
+function getLiveLocation() {
+  setShowLiveCard(true);
+
+  navigator.geolocation.getCurrentPosition(
+    async (pos) => {
+      const { latitude, longitude } = pos.coords;
+
+      setLiveCoords({
+        lat: latitude,
+        lon: longitude,
+      });
+
+      const geoRes = await fetch(
+        `https://api.openweathermap.org/geo/1.0/reverse?lat=${latitude}&lon=${longitude}&limit=1&appid=${OPENWEATHER_KEY}`
+      );
+      const geo = await geoRes.json();
+
+      if (geo[0]?.name) {
+        setLiveCity(geo[0].name); // only update liveCity
+        fetchWeather(geo[0].name); // fetch data for live card
+      }
+    },
+    () => alert("Location permission denied")
   );
+}
+
+
+  useEffect(() => {
+    fetchWeather(city);
+  }, []);
+
+  return (
+    <>
+      <AppNavbar />
+
+      <div className="max-w-7xl mx-auto px-6 pt-28 pb-10">
+
+        <h1 className="text-4xl font-bold text-center">
+          🌤 Agricultural Weather Insights
+        </h1>
+        <p className="text-center text-green-600 mt-2 flex justify-center gap-2">
+          <MapPin size={18} /> {city}
+        </p>
+{/* SEARCH */}
+<div className="flex justify-center mt-6 gap-2">
+  <input
+    value={city}
+    onChange={(e) => setCity(e.target.value)}
+    className="px-4 py-2 border rounded-l-lg w-72"
+    placeholder="Search city"
+  />
+
+  <button
+    onClick={() => fetchWeather(city)}
+    className="bg-green-600 text-white px-6 rounded-r-lg"
+  >
+    Search
+  </button>
+
+  <button
+    type="button"
+    onClick={getLiveLocation}
+    className="bg-green-100 px-4 rounded-lg"
+  >
+    📍 Live
+  </button>
+</div>
+{/* LIVE LOCATION CARD */}
+{showLiveCard && (
+  <div className="mt-8 max-w-sm mx-auto bg-white rounded-2xl p-6 shadow-lg text-center animate-fade-in">
+    <h3 className="text-xl font-bold mb-2">
+      📍 Your Current Location
+    </h3>
+
+    <p className="text-green-700 text-lg">
+      {liveCity || "Fetching..."}
+    </p>
+
+    {liveCoords && (
+      <p className="text-gray-500 text-sm mt-1">
+        Lat: {liveCoords.lat.toFixed(4)} | Lon: {liveCoords.lon.toFixed(4)}
+      </p>
+    )}
+
+    <button
+      type="button"
+      onClick={getLiveLocation}
+      className="mt-4 bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium transition"
+    >
+      Refresh Location
+    </button>
+  </div>
+)}
+{/* TODAY */}
+{current && (
+  <Card className="mt-10 bg-gradient-to-r from-yellow-400 to-orange-400 text-white shadow-lg rounded-xl">
+    <CardContent className="p-8 grid md:grid-cols-3 gap-8">
+
+      {/* LEFT – TEMPERATURE */}
+      <div>
+        <p className="uppercase text-sm opacity-80 tracking-wide">
+          Current Weather
+        </p>
+
+        <h2 className="text-6xl font-bold flex items-center gap-3 mt-2">
+          <CloudSun size={42} />
+          {Math.round(current.main.temp)}°C
+        </h2>
+
+        <p className="capitalize text-lg mt-1">
+          {current.weather[0].description}
+        </p>
+
+        <p className="text-sm opacity-90">
+          Feels like {current.main.feels_like.toFixed(1)}°C
+        </p>
+      </div>
+
+      {/* CENTER – ATMOSPHERE */}
+      <div className="space-y-3">
+        <div className="flex justify-between border border-white/30 rounded-lg p-3">
+          <span className="flex gap-2 items-center">
+            <Droplets size={18} /> Humidity
+          </span>
+          <span className="font-semibold">
+            {current.main.humidity}%
+          </span>
+        </div>
+
+        <div className="flex justify-between border border-white/30 rounded-lg p-3">
+          <span className="flex gap-2 items-center">
+            <Wind size={18} /> Wind
+          </span>
+          <span className="font-semibold">
+            {current.wind.speed} km/h
+          </span>
+        </div>
+
+        <div className="flex justify-between border border-white/30 rounded-lg p-3">
+          <span className="flex gap-2 items-center">
+            <Gauge size={18} /> Pressure
+          </span>
+          <span className="font-semibold">
+            {current.main.pressure} hPa
+          </span>
+        </div>
+      </div>
+
+      {/* RIGHT – RANGE */}
+      <div className="space-y-3">
+        <div className="flex justify-between border border-white/30 rounded-lg p-3">
+          <span>High</span>
+          <span className="font-semibold">
+            {current.main.temp_max.toFixed(1)}°
+          </span>
+        </div>
+
+        <div className="flex justify-between border border-white/30 rounded-lg p-3">
+          <span>Low</span>
+          <span className="font-semibold">
+            {current.main.temp_min.toFixed(1)}°
+          </span>
+        </div>
+      </div>
+
+    </CardContent>
+  </Card>
+)}
+
+        {/* QUICK WEATHER STATS */}
+<div className="grid md:grid-cols-3 gap-6 mt-8">
+  <Card>
+    <CardHeader>
+      <CardTitle>🌧 Rain Probability</CardTitle>
+    </CardHeader>
+    <CardContent>
+      <p className="text-3xl font-bold">{rainChance}%</p>
+      <p className="text-sm text-gray-600">
+        Chance of rainfall in next 24 hours
+      </p>
+    </CardContent>
+  </Card>
+
+  <Card>
+    <CardHeader>
+      <CardTitle>🌡 Heat Stress Index</CardTitle>
+    </CardHeader>
+    <CardContent>
+      <p className="font-semibold">{heatRisk}</p>
+      <p className="text-sm text-gray-600 mt-1">
+        Based on temperature & humidity
+      </p>
+    </CardContent>
+  </Card>
+
+  <Card>
+    <CardHeader>
+      <CardTitle>🚜 Spray Safety</CardTitle>
+    </CardHeader>
+    <CardContent>
+      <p className="text-2xl font-bold">
+        {spraySafe ? "✅ Safe" : "❌ Unsafe"}
+      </p>
+      <p className="text-sm text-gray-600">
+        Wind-based spraying recommendation
+      </p>
+    </CardContent>
+  </Card>
+</div>
+
+
+        {/* HOURLY */}
+        <Card className="mt-8">
+          <CardHeader>
+            <CardTitle>⏰ Hourly Forecast</CardTitle>
+          </CardHeader>
+          <CardContent className="flex gap-6 overflow-x-auto">
+            {hourly.map((h, i) => (
+              <div key={i} className="text-center min-w-[90px]">
+                <p>{h.time}</p>
+                <img
+                  src={`https://openweathermap.org/img/wn/${h.icon}@2x.png`}
+                />
+                <p className="font-bold">{h.temp}°C</p>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        {/* WEEKLY + INSIGHTS */}
+        <div className="grid md:grid-cols-3 gap-6 mt-8">
+          <div className="md:col-span-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>📅 7-Day Forecast</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {weekly.map((d, i) => (
+                  <div key={i} className="flex justify-between bg-green-50 p-3 rounded">
+                    <span>{d.date}</span>
+                    <span>{d.condition}</span>
+                    <span>{d.max}° / {d.min}°</span>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>🌱 Smart Farming Insights</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {insights.map((i, idx) => (
+                <div key={idx} className="bg-green-50 p-3 rounded">
+                  {i}
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </div>
+        
+</div>
+      <AppFooter />
+    </>
+  );
+}
+function weatherCodeToText(code: number): string {
+  const map: Record<number, string> = {
+    0: "Clear",
+    1: "Mainly Clear",
+    2: "Partly Cloudy",
+    3: "Cloudy",
+    45: "Fog",
+    48: "Fog",
+    51: "Drizzle",
+    61: "Rain",
+    71: "Snow",
+    80: "Rain Showers",
+    95: "Thunderstorm",
+  };
+
+  return map[code] || "Unknown";
 }
