@@ -1,14 +1,14 @@
-from flask import Blueprint, request
-from services.weather_service import get_weather
-from utils.response import success, error
+from flask import Blueprint, request, jsonify
+from services.weather_service import get_weather_data
 
-weather_bp = Blueprint("weather_bp", __name__)
+weather_bp = Blueprint("weather", __name__)
 
 @weather_bp.route("/weather", methods=["GET"])
 def weather():
-    city = request.args.get("city")
-    if not city:
-        return error("City is required")
+    city = request.args.get("city", "Ludhiana")
 
-    data = get_weather(city)
-    return success("Weather Fetched", data)
+    data = get_weather_data(city)
+    if "error" in data:
+        return jsonify(data), 404
+
+    return jsonify(data)
